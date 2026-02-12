@@ -1,4 +1,4 @@
-// 从 shared 目录复制的类型定义
+// 服务器端类型定义 - 简化版
 
 export interface Player {
   id: string;
@@ -38,46 +38,6 @@ export interface Category {
   color: string;
 }
 
-// Socket 事件类型
-export interface ServerToClientEvents {
-  'room:joined': (data: { room: Room; playerId: string }) => void;
-  'room:playerJoined': (data: { player: Player }) => void;
-  'room:playerLeft': (data: { playerId: string }) => void;
-  'room:playerReady': (data: { playerId: string; categories: string[] }) => void;
-  'game:started': (data: { room: Room }) => void;
-  'round:started': (data: { question: Question; round: number; totalRounds: number }) => void;
-  'round:countdown': (data: { count: number }) => void;
-  'round:go': () => void;
-  'buzzer:pressed': (data: { playerId: string; playerName: string }) => void;
-  'answer:result': (data: {
-    correct: boolean;
-    correctAnswer: number;
-    scores: { playerId: string; score: number }[];
-    isSecondChance?: boolean;
-    explanation?: string;
-  }) => void;
-  'round:ended': (data: {
-    scores: { playerId: string; score: number }[];
-    nextRound?: number;
-  }) => void;
-  'game:ended': (data: {
-    winner: Player | null;
-    finalScores: { playerId: string; score: number }[];
-    stats: GameStats;
-  }) => void;
-  'error': (data: { message: string }) => void;
-}
-
-export interface ClientToServerEvents {
-  'room:create': (data: { playerName: string }) => void;
-  'room:join': (data: { roomId: string; playerName: string }) => void;
-  'room:leave': () => void;
-  'player:ready': (data: { categories: string[] }) => void;
-  'buzzer:press': () => void;
-  'answer:submit': (data: { answer: number }) => void;
-  'game:restart': () => void;
-}
-
 export interface GameStats {
   totalQuestions: number;
   playerStats: {
@@ -86,4 +46,83 @@ export interface GameStats {
     avgResponseTime: number;
     fastestBuzz: number;
   }[];
+}
+
+// 事件数据类型
+export interface RoomJoinedData {
+  room: Room;
+  playerId: string;
+}
+
+export interface PlayerJoinedData {
+  player: Player;
+}
+
+export interface PlayerLeftData {
+  playerId: string;
+}
+
+export interface PlayerReadyData {
+  playerId: string;
+  categories: string[];
+}
+
+export interface GameStartedData {
+  room: Room;
+}
+
+export interface RoundStartedData {
+  question: Question;
+  round: number;
+  totalRounds: number;
+}
+
+export interface CountdownData {
+  count: number;
+}
+
+export interface BuzzerPressedData {
+  playerId: string;
+  playerName: string;
+}
+
+export interface AnswerResultData {
+  correct: boolean;
+  correctAnswer: number;
+  scores: { playerId: string; score: number }[];
+  isSecondChance?: boolean;
+  explanation?: string;
+}
+
+export interface RoundEndedData {
+  scores: { playerId: string; score: number }[];
+  nextRound?: number;
+}
+
+export interface GameEndedData {
+  winner: Player | null;
+  finalScores: { playerId: string; score: number }[];
+  stats: GameStats;
+}
+
+export interface ErrorData {
+  message: string;
+}
+
+// 客户端发送的事件数据
+export interface CreateRoomData {
+  playerName: string;
+}
+
+export interface JoinRoomData {
+  roomId: string;
+  playerName: string;
+}
+
+export interface PlayerReadyInput {
+  categories: string[];
+}
+
+export interface AnswerSubmitData {
+  answer: number;
 }

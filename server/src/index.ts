@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import type { ServerToClientEvents, ClientToServerEvents, Question, Room } from './types.js';
+import type { Room, AnswerResultData } from './types.js';
 import {
   createRoom,
   joinRoom,
@@ -20,7 +20,7 @@ const app = express();
 app.use(cors());
 
 const httpServer = createServer(app);
-const io = new Server<ServerToClientEvents, ClientToServerEvents>(httpServer, {
+const io = new Server(httpServer, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST'],
@@ -88,7 +88,7 @@ io.on('connection', (socket) => {
       socket.to(room.id).emit('room:playerReady', { playerId, categories });
       
       // 检查是否可以开始游戏
-      if (room.players.length === 2 && room.players.every((p: { isReady: boolean }) => p.isReady)) {
+      if (room.players.length === 2 && room.players.every((p) => p.isReady)) {
         setTimeout(() => startGame(room.id), 1000);
       }
     }
@@ -132,14 +132,15 @@ io.on('connection', (socket) => {
       
       if (isCorrect) {
         // 答对了，直接得分
-        const player = room.players.find((p: { id: string }) => p.id === playerId);
-        if (player) (player as { score: number }).score += 10;
+        const player = room.players.find((p) => p.id === playerId);
+        if (player) player.score += 10;
         
-        io.to(room.id).emit('answer:result', {
+        const resultData: AnswerResultData = {
           correct: true,
           correctAnswer: question.correctAnswer,
-          scores: room.players.map((p: { id: string; score: number }) => ({ playerId: p.id, score: p.score })),
-        });
+          scores: room.players.map((p) => ({ playerId: p.id, score: p.score })),
+        };
+        io.to(room.id).emit('answer:result', resultData);
         
         answerStates.delete(room.id);
         
@@ -154,21 +155,22 @@ io.on('connection', (socket) => {
         });
         
         // 通知第一个玩家答错了
-        io.to(room.id).emit('answer:result', {
+        const resultData: AnswerResultData = {
           correct: false,
           correctAnswer: -1,
-          scores: room.players.map((p: { id: string; score: number }) => ({ playerId: p.id, score: p.score })),
+          scores: room.players.map((p) => ({ playerId: p.id, score: p.score })),
           isSecondChance: true,
-        });
+        };
+        io.to(room.id).emit('answer:result', resultData);
         
         // 切换抢答权给对手
-        const opponent = room.players.find((p: { id: string }) => p.id !== playerId);
+        const opponent = room.players.find((p) => p.id !== playerId);
         if (opponent) {
           room.buzzerWinner = opponent.id;
           setTimeout(() => {
             io.to(room.id).emit('buzzer:pressed', { 
               playerId: opponent.id, 
-              playerName: (opponent as { name: string }).name 
+              playerName: opponent.name 
             });
           }, 1000);
         }
@@ -179,17 +181,18 @@ io.on('connection', (socket) => {
       
       if (isCorrect) {
         // 对手答对了
-        const player = room.players.find((p: { id: string }) => p.id === playerId);
-        if (player) (player as { score: number }).score += 10;
+        const player = room.players.find((p) => p.id === playerId);
+        if (player) player.score += 10;
       }
       
       // 显示最终结果
-      io.to(room.id).emit('answer:result', {
+      const resultData: AnswerResultData = {
         correct: isCorrect,
         correctAnswer: question.correctAnswer,
-        scores: room.players.map((p: { id: string; score: number }) => ({ playerId: p.id, score: p.score })),
+        scores: room.players.map((p) => ({ playerId: p.id, score: p.score })),
         isSecondChance: false,
-      });
+      };
+      io.to(room.id).emit('answer:result', resultData);
       
       answerStates.delete(room.id);
       
@@ -237,7 +240,7 @@ function proceedToNextRound(room: Room) {
   const roundResult = nextRound(room.id);
   if (roundResult.hasMore) {
     io.to(room.id).emit('round:ended', {
-      scores: room.players.map((p: { id: string; score: number }) => ({ playerId: p.id, score: p.score })),
+      scores: room.players.map((p) => ({ playerId: p.id, score: p.score })),
       nextRound: roundResult.round,
     });
     setTimeout(() => startRound(room.id), 2000);
@@ -288,7 +291,7 @@ async function startRound(roomId: string) {
       nextRound(roomId);
       if (room.currentRound <= room.totalRounds) {
         io.to(room.id).emit('round:ended', {
-          scores: room.players.map((p: { id: string; score: number }) => ({ playerId: p.id, score: p.score })),
+          scores: room.players.map((p) => ({ playerId: p.id, score: p.score })),
           nextRound: room.currentRound,
         });
         setTimeout(() => startRound(roomId), 2000);

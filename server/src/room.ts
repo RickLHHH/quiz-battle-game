@@ -1,4 +1,4 @@
-import type { Player, Room, Question, GameStats } from './types.js';
+import type { Player, Room, Question, GameStats, Category } from './types.js';
 import { getRandomQuestions, categories } from './questions.js';
 
 // 房间存储
