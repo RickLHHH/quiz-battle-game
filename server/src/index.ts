@@ -99,14 +99,21 @@ io.on('connection', (socket) => {
     const room = getRoomByPlayerId(playerId);
     if (!room) return;
 
-    const success = playerReady(playerId, categories);
-    if (success) {
-      socket.to(room.id).emit('room:playerReady', { playerId, categories });
-      
-      // 检查是否可以开始游戏
-      if (room.players.length === 2 && room.players.every((p) => p.isReady)) {
-        setTimeout(() => startGame(room.id), 1000);
-      }
+    // 更新玩家状态
+    const player = room.players.find(p => p.id === playerId);
+    if (!player || player.isReady) return;
+
+    player.selectedCategories = categories;
+    player.isReady = true;
+
+    // 通知房间内所有人（包括自己）
+    io.to(room.id).emit('room:playerReady', { playerId, categories });
+    console.log(`Player ${player.name} (${playerId}) is ready in room ${room.id}`);
+    
+    // 检查是否可以开始游戏
+    if (room.players.length === 2 && room.players.every((p) => p.isReady)) {
+      console.log(`All players ready in room ${room.id}, starting game...`);
+      setTimeout(() => startGame(room.id), 1500);
     }
   });
 

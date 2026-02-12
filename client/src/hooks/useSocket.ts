@@ -3,7 +3,6 @@ import { io, Socket } from 'socket.io-client';
 import type { Room, Player } from '../../../shared/types';
 import { useGameStore } from '../stores/gameStore';
 
-// 自动检测 Socket 地址
 const getSocketUrl = () => {
   if (import.meta.env.VITE_SOCKET_URL) {
     return import.meta.env.VITE_SOCKET_URL;
@@ -15,12 +14,7 @@ const SOCKET_URL = getSocketUrl();
 
 export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
-  const store = useGameStore();
-  // 使用 ref 存储最新的 room 状态
-  const roomRef = useRef<Room | null>(null);
-  
-  // 同步 roomRef 与 store.room
-  roomRef.current = store.room;
+  const storeRef = useRef(useGameStore);
 
   useEffect(() => {
     const socket = io(SOCKET_URL, {
@@ -31,133 +25,143 @@ export function useSocket() {
     });
 
     socketRef.current = socket;
+    const store = storeRef.current;
 
     // 连接事件
     socket.on('connect', () => {
       console.log('Connected to server');
-      store.setConnected(true);
-      store.setConnectionError(null);
+      store.getState().setConnected(true);
+      store.getState().setConnectionError(null);
     });
 
     socket.on('disconnect', () => {
       console.log('Disconnected from server');
-      store.setConnected(false);
+      store.getState().setConnected(false);
     });
 
     socket.on('connect_error', (error) => {
       console.error('Connection error:', error);
-      store.setConnectionError('连接服务器失败，请检查网络');
+      store.getState().setConnectionError('连接服务器失败，请检查网络');
     });
 
     // 房间事件
     socket.on('room:joined', ({ room, playerId }: { room: Room; playerId: string }) => {
       console.log('Joined room:', room.id, 'Player ID:', playerId);
-      store.setRoom(room);
-      store.setPlayerId(playerId);
-      store.setStatus('lobby');
+      store.getState().setRoom(room);
+      store.getState().setPlayerId(playerId);
+      store.getState().setStatus('lobby');
     });
 
     socket.on('room:playerJoined', ({ player }: { player: Player }) => {
-      console.log('Player joined:', player.name);
-      const currentRoom = roomRef.current;
+      console.log('Player joined:', player.name, player.id);
+      const currentRoom = store.getState().room;
       if (currentRoom) {
-        // 检查玩家是否已经在房间中（避免重复添加）
         const exists = currentRoom.players.some(p => p.id === player.id);
         if (!exists) {
           const newRoom: Room = {
             ...currentRoom,
             players: [...currentRoom.players, player],
           };
-          store.setRoom(newRoom);
+          store.getState().setRoom(newRoom);
+          console.log('Updated room with new player:', newRoom.players.map(p => p.name));
         }
       }
     });
 
     socket.on('room:playerLeft', ({ playerId }: { playerId: string }) => {
       console.log('Player left:', playerId);
-      const currentRoom = roomRef.current;
+      const currentRoom = store.getState().room;
       if (currentRoom) {
         const newRoom: Room = {
           ...currentRoom,
           players: currentRoom.players.filter((p: Player) => p.id !== playerId),
         };
-        store.setRoom(newRoom);
+        store.getState().setRoom(newRoom);
       }
     });
 
     socket.on('room:playerReady', ({ playerId, categories }: { playerId: string; categories: string[] }) => {
-      console.log('Player ready:', playerId, categories);
-      const currentRoom = roomRef.current;
+      console.log('Player ready event received:', playerId, categories);
+      const currentRoom = store.getState().room;
+      console.log('Current room players:', currentRoom?.players.map(p => ({ id: p.id, name: p.name, isReady: p.isReady })));
+      
       if (currentRoom) {
+        const newPlayers = currentRoom.players.map((p: Player) => {
+          if (p.id === playerId) {
+            console.log('Setting player ready:', p.name);
+            return { ...p, isReady: true, selectedCategories: categories };
+          }
+          return p;
+        });
+        
         const newRoom: Room = {
           ...currentRoom,
-          players: currentRoom.players.map((p: Player) => 
-            p.id === playerId 
-              ? { ...p, isReady: true, selectedCategories: categories }
-              : p
-          ),
+          players: newPlayers,
         };
-        store.setRoom(newRoom);
+        
+        store.getState().setRoom(newRoom);
+        console.log('Updated room:', newRoom.players.map(p => ({ id: p.id, name: p.name, isReady: p.isReady })));
       }
     });
 
     // 游戏事件
     socket.on('game:started', ({ room }: { room: Room }) => {
-      store.setRoom(room);
-      store.setStatus('waiting');
+      console.log('Game started');
+      store.getState().setRoom(room);
+      store.getState().setStatus('waiting');
     });
 
     socket.on('round:countdown', ({ count }: { count: number }) => {
-      store.setStatus('countdown');
-      store.setCountdown(count);
+      store.getState().setStatus('countdown');
+      store.getState().setCountdown(count);
     });
 
     socket.on('round:go', () => {
-      store.setCountdown(0);
+      store.getState().setCountdown(0);
     });
 
     socket.on('round:started', ({ question, round, totalRounds }: { question: any; round: number; totalRounds: number }) => {
-      store.setCurrentQuestion(question);
-      store.setCurrentRound(round);
-      store.setTotalRounds(totalRounds);
-      store.setBuzzerWinner(null);
-      store.setAnswerResult(null);
-      store.setStatus('playing');
+      store.getState().setCurrentQuestion(question);
+      store.getState().setCurrentRound(round);
+      store.getState().setTotalRounds(totalRounds);
+      store.getState().setBuzzerWinner(null);
+      store.getState().setAnswerResult(null);
+      store.getState().setStatus('playing');
     });
 
     socket.on('buzzer:pressed', ({ playerId }: { playerId: string }) => {
-      store.setBuzzerWinner(playerId);
+      store.getState().setBuzzerWinner(playerId);
     });
 
     socket.on('answer:result', ({ correct, scores, correctAnswer, isSecondChance }: { correct: boolean; scores: any[]; correctAnswer: number; isSecondChance?: boolean }) => {
-      store.setAnswerResult({ correct, scores, correctAnswer, isSecondChance });
+      store.getState().setAnswerResult({ correct, scores, correctAnswer, isSecondChance });
       
       scores.forEach(({ playerId, score }: { playerId: string; score: number }) => {
-        store.updatePlayerScore(playerId, score);
+        store.getState().updatePlayerScore(playerId, score);
       });
       
       if (isSecondChance) {
-        store.setBuzzerWinner(null);
+        store.getState().setBuzzerWinner(null);
       }
     });
 
     socket.on('round:ended', ({ scores, nextRound }: { scores: any[]; nextRound?: number }) => {
       if (nextRound) {
-        store.setCurrentRound(nextRound);
+        store.getState().setCurrentRound(nextRound);
       }
       scores.forEach(({ playerId, score }: { playerId: string; score: number }) => {
-        store.updatePlayerScore(playerId, score);
+        store.getState().updatePlayerScore(playerId, score);
       });
     });
 
     socket.on('game:ended', ({ winner, finalScores, stats }: { winner: any; finalScores: any[]; stats: any }) => {
-      store.setGameResult({ winner, finalScores, stats });
-      store.setStatus('ended');
+      store.getState().setGameResult({ winner, finalScores, stats });
+      store.getState().setStatus('ended');
     });
 
     socket.on('error', ({ message }: { message: string }) => {
       console.error('Socket error:', message);
-      store.setConnectionError(message);
+      store.getState().setConnectionError(message);
     });
 
     return () => {
@@ -165,7 +169,6 @@ export function useSocket() {
     };
   }, []);
 
-  // 发送事件的封装
   const createRoom = useCallback((playerName: string) => {
     socketRef.current?.emit('room:create', { playerName });
   }, []);

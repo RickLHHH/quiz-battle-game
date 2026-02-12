@@ -15,14 +15,21 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-bg">
-      {/* 背景装饰 */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-neon-cyan/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-neon-magenta/5 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-dark-bg relative">
+      {/* CRT Overlay Effect */}
+      <div className="crt-overlay" />
+      
+      {/* Noise Texture */}
+      <div className="noise-bg" />
+
+      {/* Background decorative elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-neon-cyan/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-neon-pink/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-neon-purple/5 rounded-full blur-3xl" />
       </div>
 
-      {/* 主内容 */}
+      {/* Main Content */}
       <div className="relative z-10">
         {status === 'home' && (
           <Home
@@ -52,7 +59,7 @@ function App() {
         )}
       </div>
 
-      {/* 连接状态指示器 */}
+      {/* Connection Status */}
       <ConnectionStatus />
     </div>
   );
@@ -64,7 +71,7 @@ function ConnectionStatus() {
   if (isConnected) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-500/80 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2 z-50">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-500/80 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 z-50">
       <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
       连接中...
     </div>

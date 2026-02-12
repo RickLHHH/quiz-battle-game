@@ -6,8 +6,8 @@ interface LobbyProps {
 }
 
 const categories = [
-  { id: 'ent', name: '影视娱乐', icon: '🎬', color: '#e040fb', desc: '电影、动画、明星' },
-  { id: 'life', name: '生活常识', icon: '🏠', color: '#ffd600', desc: '健康、日常、科学' },
+  { id: 'ent', name: '影视娱乐', icon: '🎬', color: '#ff006e', desc: '电影、动画、明星' },
+  { id: 'life', name: '生活常识', icon: '🏠', color: '#fee440', desc: '健康、日常、科学' },
 ];
 
 export function Lobby({ onReady }: LobbyProps) {
@@ -45,52 +45,62 @@ export function Lobby({ onReady }: LobbyProps) {
   const canStart = selectedCategories.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col p-6 safe-area-top safe-area-bottom">
-      {/* 房间信息 */}
-      <div className="text-center mb-8">
-        <p className="text-white/60 text-sm mb-2">房间号</p>
-        <div className="text-4xl font-bold tracking-widest neon-text-cyan">
-          {room.id}
+    <div className="min-h-screen flex flex-col p-5 safe-area-top safe-area-bottom">
+      {/* Room Info */}
+      <div className="text-center mb-6">
+        <p className="text-white/40 text-xs uppercase tracking-widest mb-2">房间号</p>
+        <div className="inline-block">
+          <div className="font-pixel text-3xl sm:text-4xl neon-cyan tracking-widest px-4 py-2 border-2 border-neon-cyan/30 rounded-lg bg-black/30">
+            {room.id}
+          </div>
         </div>
-        <p className="text-white/40 text-xs mt-2">分享给好友加入对战</p>
+        <p className="text-white/30 text-xs mt-2">分享给好友加入对战</p>
       </div>
 
-      {/* 玩家列表 */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      {/* Players */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
         {room.players.map((player) => (
           <div
             key={player.id}
-            className={`glass-card p-4 text-center ${
-              player.id === playerId ? 'neon-border-cyan' : ''
-            }`}
+            className={`player-card ${player.id === playerId ? 'active' : 'opponent'}`}
           >
             <div className="text-4xl mb-2">{player.avatar}</div>
-            <div className="font-semibold truncate">{player.name}</div>
-            <div className="text-xs text-white/60">
-              {player.id === playerId ? '(你)' : '(对手)'}
+            <div className="font-bold text-sm truncate">{player.name}</div>
+            <div className="text-xs text-white/40 mt-1">
+              {player.id === playerId ? '你' : '对手'}
             </div>
-            {player.isReady && (
-              <div className="mt-2 text-neon-cyan text-sm font-semibold">
+            {player.isReady ? (
+              <div className="mt-2 text-xs font-bold uppercase tracking-wider" style={{ 
+                color: player.id === playerId ? '#00f5d4' : '#ff006e',
+                textShadow: player.id === playerId ? '0 0 10px #00f5d4' : '0 0 10px #ff006e'
+              }}>
                 ✓ 已准备
+              </div>
+            ) : (
+              <div className="mt-2 text-xs text-white/30">
+                等待中...
               </div>
             )}
           </div>
         ))}
         
         {room.players.length === 1 && (
-          <div className="glass-card p-4 text-center opacity-50">
-            <div className="text-4xl mb-2">?</div>
-            <div className="font-semibold">等待加入...</div>
+          <div className="player-card opacity-50 border-dashed">
+            <div className="text-4xl mb-2 animate-pulse">?</div>
+            <div className="font-bold text-sm">等待加入</div>
+            <div className="text-xs text-white/30 mt-1">...</div>
           </div>
         )}
       </div>
 
-      {/* 题库选择 */}
+      {/* Category Selection */}
       {opponent ? (
         <div className="flex-1">
-          <h3 className="text-lg font-semibold mb-4 text-center">
-            {isReady ? '等待对手准备...' : '选择你擅长的题库 (1-2个)'}
-          </h3>
+          <div className="text-center mb-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white/70">
+              {isReady ? '等待对手准备...' : '选择题库 (1-2个)'}
+            </h3>
+          </div>
           
           <div className="space-y-3">
             {categories.map((cat) => (
@@ -106,19 +116,19 @@ export function Lobby({ onReady }: LobbyProps) {
                 }}
               >
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                  className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
                   style={{ backgroundColor: `${cat.color}20` }}
                 >
                   {cat.icon}
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="font-semibold" style={{ color: cat.color }}>
+                  <div className="font-bold text-sm" style={{ color: cat.color }}>
                     {cat.name}
                   </div>
-                  <div className="text-xs text-white/50">{cat.desc}</div>
+                  <div className="text-xs text-white/40">{cat.desc}</div>
                 </div>
                 {selectedCategories.includes(cat.id) && (
-                  <div className="text-2xl" style={{ color: cat.color }}>
+                  <div className="text-xl" style={{ color: cat.color }}>
                     ✓
                   </div>
                 )}
@@ -130,7 +140,7 @@ export function Lobby({ onReady }: LobbyProps) {
             <button
               onClick={handleReady}
               disabled={!canStart}
-              className="btn-primary w-full text-lg py-4 mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-arcade w-full text-sm py-5 mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               准备开始
             </button>
@@ -138,9 +148,9 @@ export function Lobby({ onReady }: LobbyProps) {
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="animate-pulse text-center">
-            <div className="text-6xl mb-4">⏳</div>
-            <p className="text-white/60">等待对手加入...</p>
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-bounce">⏳</div>
+            <p className="text-white/50 text-sm">等待对手加入...</p>
           </div>
         </div>
       )}

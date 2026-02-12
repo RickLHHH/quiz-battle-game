@@ -19,24 +19,13 @@ export function Game({ onBuzzer, onAnswer }: GameProps) {
 
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [canBuzz, setCanBuzz] = useState(false);
-  const [isSecondChance, setIsSecondChance] = useState(false);
 
-  // 重置状态当新题目开始
   useEffect(() => {
     if (status === 'countdown') {
       setSelectedAnswer(null);
-      setIsSecondChance(false);
     }
   }, [status, currentRound]);
 
-  // 监听答题结果
-  useEffect(() => {
-    if (answerResult?.isSecondChance) {
-      setIsSecondChance(true);
-    }
-  }, [answerResult]);
-
-  // 倒计时结束后可以抢答
   useEffect(() => {
     if (status === 'playing' && countdown === 0 && !buzzerWinner) {
       setCanBuzz(true);
@@ -45,10 +34,8 @@ export function Game({ onBuzzer, onAnswer }: GameProps) {
     }
   }, [status, countdown, buzzerWinner]);
 
-  // 抢答
   const handleBuzzer = useCallback(() => {
     if (canBuzz && !buzzerWinner) {
-      // 震动反馈
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
@@ -56,55 +43,54 @@ export function Game({ onBuzzer, onAnswer }: GameProps) {
     }
   }, [canBuzz, buzzerWinner, onBuzzer]);
 
-  // 选择答案
   const handleSelectAnswer = (index: number) => {
     if (buzzerWinner !== playerId || selectedAnswer !== null || answerResult) {
       return;
     }
     
-    // 震动反馈
     if (navigator.vibrate) {
       navigator.vibrate(30);
     }
-    
     setSelectedAnswer(index);
     onAnswer(index);
   };
 
-  // 获取玩家信息
   const me = room?.players.find(p => p.id === playerId);
   const opponent = room?.players.find(p => p.id !== playerId);
   const isMyTurn = buzzerWinner === playerId;
 
-  // 倒计时阶段
+  // Countdown Phase
   if (status === 'countdown' || (status === 'playing' && countdown > 0)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
-        {/* 比分 */}
-        <div className="absolute top-6 left-6 right-6 flex justify-between items-center">
-          <div className="text-center">
-            <div className="text-sm text-white/60">{me?.name}</div>
-            <div className="text-2xl font-bold text-neon-cyan">{me?.score || 0}</div>
+        {/* Score Board */}
+        <div className="absolute top-6 left-4 right-4 flex justify-between items-center">
+          <div className="text-center player-card active px-4 py-2">
+            <div className="text-xs text-white/50 mb-1">{me?.name}</div>
+            <div className="text-2xl font-pixel neon-cyan">{me?.score || 0}</div>
           </div>
+          
           <div className="text-center">
-            <div className="text-xs text-white/40">{currentRound}/{totalRounds}</div>
+            <div className="text-xs text-white/30 uppercase tracking-wider">Round</div>
+            <div className="text-xl font-bold">{currentRound}/{totalRounds}</div>
           </div>
-          <div className="text-center">
-            <div className="text-sm text-white/60">{opponent?.name}</div>
-            <div className="text-2xl font-bold text-neon-magenta">{opponent?.score || 0}</div>
+          
+          <div className="text-center player-card opponent px-4 py-2">
+            <div className="text-xs text-white/50 mb-1">{opponent?.name}</div>
+            <div className="text-2xl font-pixel neon-pink">{opponent?.score || 0}</div>
           </div>
         </div>
 
-        {/* 倒计时 */}
+        {/* Countdown */}
         <div className="text-center">
-          <div className="text-white/60 mb-4">准备抢答...</div>
+          <div className="text-white/40 text-sm uppercase tracking-widest mb-6">准备抢答</div>
           <div 
-            className="text-8xl font-bold animate-countdown"
+            className="font-pixel text-8xl countdown-number"
             style={{ 
-              color: countdown === 1 ? '#00f5ff' : '#ff00ff',
+              color: countdown === 1 ? '#00f5d4' : '#ff006e',
               textShadow: countdown === 1 
-                ? '0 0 30px #00f5ff' 
-                : '0 0 30px #ff00ff'
+                ? '0 0 30px #00f5d4, 0 0 60px #00f5d4' 
+                : '0 0 30px #ff006e, 0 0 60px #ff006e'
             }}
           >
             {countdown === 0 ? 'GO!' : countdown}
@@ -114,99 +100,97 @@ export function Game({ onBuzzer, onAnswer }: GameProps) {
     );
   }
 
-  // 答题阶段
+  // Game Phase
   return (
     <div className="min-h-screen flex flex-col p-4 safe-area-top safe-area-bottom">
-      {/* 顶部信息栏 */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <div className="glass-card px-4 py-2 flex items-center gap-2">
+        <div className="player-card active px-3 py-2 flex items-center gap-2">
           <span className="text-2xl">{me?.avatar}</span>
           <div>
-            <div className="text-xs text-white/60">{me?.name}</div>
-            <div className="text-xl font-bold text-neon-cyan">{me?.score || 0}</div>
+            <div className="text-xs text-white/50">{me?.name}</div>
+            <div className="text-xl font-pixel neon-cyan">{me?.score || 0}</div>
           </div>
         </div>
 
         <div className="text-center">
-          <div className="text-2xl font-bold">{currentRound}/{totalRounds}</div>
-          <div className="text-xs text-white/40">题</div>
+          <div className="text-2xl font-pixel">{currentRound}/{totalRounds}</div>
+          <div className="text-xs text-white/40 uppercase">题</div>
         </div>
 
-        <div className="glass-card px-4 py-2 flex items-center gap-2">
+        <div className="player-card opponent px-3 py-2 flex items-center gap-2">
           <div className="text-right">
-            <div className="text-xs text-white/60">{opponent?.name}</div>
-            <div className="text-xl font-bold text-neon-magenta">{opponent?.score || 0}</div>
+            <div className="text-xs text-white/50">{opponent?.name}</div>
+            <div className="text-xl font-pixel neon-pink">{opponent?.score || 0}</div>
           </div>
           <span className="text-2xl">{opponent?.avatar}</span>
         </div>
       </div>
 
-      {/* 题目区域 */}
+      {/* Question */}
       {currentQuestion && (
         <div className="flex-1 flex flex-col">
-          {/* 题目 */}
-          <div className="glass-card p-5 mb-4">
+          <div className="glass-card p-5 mb-4 border-l-4" style={{
+            borderLeftColor: currentQuestion.category === 'ent' ? '#ff006e' : '#fee440'
+          }}>
             <div 
-              className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3"
+              className="inline-block px-3 py-1 rounded text-xs font-bold mb-3 uppercase tracking-wider"
               style={{ 
-                backgroundColor: currentQuestion.category === 'ent' ? '#e040fb30' : '#ffd60030',
-                color: currentQuestion.category === 'ent' ? '#e040fb' : '#ffd600'
+                backgroundColor: currentQuestion.category === 'ent' ? '#ff006e30' : '#fee44030',
+                color: currentQuestion.category === 'ent' ? '#ff006e' : '#fee440'
               }}
             >
               {currentQuestion.category === 'ent' ? '🎬 影视娱乐' : '🏠 生活常识'}
             </div>
-            <h3 className="text-lg font-semibold leading-relaxed">
+            <h3 className="text-lg font-bold leading-relaxed">
               {currentQuestion.question}
             </h3>
           </div>
 
-          {/* 抢答按钮 / 选项区域 */}
+          {/* Buzzer or Options */}
           {!buzzerWinner ? (
-            // 抢答阶段
             <div className="flex-1 flex flex-col justify-center">
               <button
                 onClick={handleBuzzer}
                 disabled={!canBuzz}
                 className="buzzer-btn"
               >
-                {canBuzz ? '🔥 抢答! 🔥' : '等待中...'}
+                {canBuzz ? '🔥 抢答! 🔥' : '等待...'}
               </button>
-              <p className="text-center text-white/40 text-sm mt-4">
+              <p className="text-center text-white/30 text-xs mt-4 uppercase tracking-wider">
                 倒计时结束后点击抢答
               </p>
             </div>
           ) : (
-            // 答题阶段
             <div className="flex-1">
-              {/* 抢答结果 / 答题状态 */}
-              <div className={`text-center mb-4 p-3 rounded-xl ${
+              {/* Turn Indicator */}
+              <div className={`text-center mb-4 p-3 rounded-lg font-bold uppercase text-sm tracking-wider ${
                 isMyTurn 
-                  ? 'bg-neon-cyan/20 text-neon-cyan' 
-                  : 'bg-neon-magenta/20 text-neon-magenta'
+                  ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30' 
+                  : 'bg-neon-pink/10 text-neon-pink border border-neon-pink/30'
               }`}>
                 {isMyTurn ? (
-                  isSecondChance ? '⚡ 对手答错了，轮到你了！' : '✓ 抢答成功！请作答'
+                  answerResult?.isSecondChance ? '⚡ 对手答错，轮到你了！' : '✓ 抢答成功！请作答'
                 ) : (
                   `⚡ ${opponent?.name} 正在答题...`
                 )}
               </div>
 
-              {/* 选项 */}
-              <div className="grid grid-cols-1 gap-3">
+              {/* Options */}
+              <div className="grid grid-cols-1 gap-2">
                 {currentQuestion.options.map((option, index) => {
-                  let buttonClass = 'category-card w-full py-4 text-left px-4';
+                  let buttonClass = 'category-card w-full py-3 text-left px-4';
                   
                   if (answerResult) {
-                    // 显示结果
                     if (index === answerResult.correctAnswer) {
-                      buttonClass += ' bg-green-500/30 border-green-500';
+                      buttonClass += ' bg-green-500/20 border-green-500';
                     } else if (index === selectedAnswer && !answerResult.correct) {
-                      buttonClass += ' bg-red-500/30 border-red-500';
+                      buttonClass += ' bg-red-500/20 border-red-500';
                     }
                   } else if (isMyTurn) {
-                    buttonClass += ' hover:bg-white/10';
+                    buttonClass += ' hover:bg-white/5';
                   } else {
-                    buttonClass += ' opacity-50';
+                    buttonClass += ' opacity-40';
                   }
 
                   return (
@@ -216,40 +200,39 @@ export function Game({ onBuzzer, onAnswer }: GameProps) {
                       disabled={!isMyTurn || selectedAnswer !== null || !!answerResult}
                       className={buttonClass}
                     >
-                      <span className="inline-block w-8 h-8 rounded-full bg-white/10 text-center leading-8 mr-3 text-sm font-bold">
+                      <span className="inline-block w-8 h-8 rounded bg-white/10 text-center leading-8 mr-3 text-sm font-bold font-pixel">
                         {String.fromCharCode(65 + index)}
                       </span>
-                      <span>{option}</span>
+                      <span className="text-sm">{option}</span>
                       {answerResult && index === answerResult.correctAnswer && (
-                        <span className="ml-auto text-green-400">✓ 正确答案</span>
+                        <span className="ml-auto text-green-400 text-sm">✓</span>
                       )}
                       {answerResult && index === selectedAnswer && !answerResult.correct && (
-                        <span className="ml-auto text-red-400">✗</span>
+                        <span className="ml-auto text-red-400 text-sm">✗</span>
                       )}
                     </button>
                   );
                 })}
               </div>
 
-              {/* 结果显示 */}
+              {/* Result */}
               {answerResult && !answerResult.isSecondChance && (
-                <div className={`mt-4 p-4 rounded-xl text-center ${
+                <div className={`mt-4 p-4 rounded-lg text-center font-bold ${
                   answerResult.correct 
-                    ? 'bg-green-500/20 text-green-400' 
-                    : 'bg-red-500/20 text-red-400'
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/30' 
+                    : 'bg-red-500/10 text-red-400 border border-red-500/30'
                 }`}>
-                  {answerResult.correct ? '🎉 回答正确！+10分' : '❌ 回答错误！'}
+                  {answerResult.correct ? '🎉 +10分!' : '❌ 错误!'}
                   {!answerResult.correct && (
-                    <div className="text-sm text-white/60 mt-1">
-                      正确答案是：{currentQuestion.options[answerResult.correctAnswer]}
+                    <div className="text-xs text-white/50 mt-1 font-normal">
+                      正确答案: {currentQuestion.options[answerResult.correctAnswer]}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* 第一轮答错的提示 */}
               {answerResult?.isSecondChance && (
-                <div className="mt-4 p-4 rounded-xl text-center bg-yellow-500/20 text-yellow-400">
+                <div className="mt-4 p-4 rounded-lg text-center bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 text-sm">
                   ❌ 回答错误！给对手机会...
                 </div>
               )}
