@@ -2,6 +2,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import type { Room, AnswerResultData } from './types.js';
 import {
   createRoom,
@@ -16,8 +18,20 @@ import {
   restartGame,
 } from './room.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(cors());
+
+// 健康检查端点（放在静态文件之前）
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// 静态文件服务 - 指向 client/dist 目录
+const staticPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(staticPath));
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -25,24 +39,6 @@ const io = new Server(httpServer, {
     origin: '*',
     methods: ['GET', 'POST'],
   },
-});
-
-// 根路径 - 显示服务器状态
-app.get('/', (req, res) => {
-  res.json({ 
-    status: 'running', 
-    service: 'Quiz Battle Game Server',
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      health: '/health',
-      websocket: '/socket.io/'
-    }
-  });
-});
-
-// 健康检查端点
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // 存储玩家 socket 映射

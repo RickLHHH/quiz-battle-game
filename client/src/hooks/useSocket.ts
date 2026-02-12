@@ -1,17 +1,27 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import type { ServerToClientEvents, ClientToServerEvents, Room, Player } from '../../../shared/types';
+import type { Room, Player } from '../../../shared/types';
 import { useGameStore } from '../stores/gameStore';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+// 自动检测 Socket 地址
+const getSocketUrl = () => {
+  // 如果有环境变量，优先使用
+  if (import.meta.env.VITE_SOCKET_URL) {
+    return import.meta.env.VITE_SOCKET_URL;
+  }
+  // 否则使用当前域名
+  return window.location.origin;
+};
+
+const SOCKET_URL = getSocketUrl();
 
 export function useSocket() {
-  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const store = useGameStore();
 
   useEffect(() => {
     const socket = io(SOCKET_URL, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -37,7 +47,7 @@ export function useSocket() {
     });
 
     // 房间事件
-    socket.on('room:joined', ({ room, playerId }) => {
+    socket.on('room:joined', ({ room, playerId }: { room: Room; playerId: string }) => {
       store.setRoom(room);
       store.setPlayerId(playerId);
       store.setStatus('lobby');
@@ -95,7 +105,7 @@ export function useSocket() {
       store.setCountdown(0);
     });
 
-    socket.on('round:started', ({ question, round, totalRounds }) => {
+    socket.on('round:started', ({ question, round, totalRounds }: { question: any; round: number; totalRounds: number }) => {
       store.setCurrentQuestion(question);
       store.setCurrentRound(round);
       store.setTotalRounds(totalRounds);
@@ -108,7 +118,7 @@ export function useSocket() {
       store.setBuzzerWinner(playerId);
     });
 
-    socket.on('answer:result', ({ correct, scores, correctAnswer, isSecondChance }) => {
+    socket.on('answer:result', ({ correct, scores, correctAnswer, isSecondChance }: { correct: boolean; scores: any[]; correctAnswer: number; isSecondChance?: boolean }) => {
       store.setAnswerResult({ correct, scores, correctAnswer, isSecondChance });
       
       // 更新分数
@@ -122,7 +132,7 @@ export function useSocket() {
       }
     });
 
-    socket.on('round:ended', ({ scores, nextRound }) => {
+    socket.on('round:ended', ({ scores, nextRound }: { scores: any[]; nextRound?: number }) => {
       if (nextRound) {
         store.setCurrentRound(nextRound);
       }
@@ -131,7 +141,7 @@ export function useSocket() {
       });
     });
 
-    socket.on('game:ended', ({ winner, finalScores, stats }) => {
+    socket.on('game:ended', ({ winner, finalScores, stats }: { winner: any; finalScores: any[]; stats: any }) => {
       store.setGameResult({ winner, finalScores, stats });
       store.setStatus('ended');
     });
