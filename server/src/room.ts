@@ -5,9 +5,9 @@ import { getRandomQuestions, categories } from './questions.js';
 const rooms = new Map<string, Room>();
 const playerRooms = new Map<string, string>();
 
-// 生成6位房间号
+// 生成6位数字房间号
 function generateRoomId(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // 生成玩家ID
@@ -56,7 +56,7 @@ export function createRoom(playerName: string): { room: Room; playerId: string }
 
 // 加入房间
 export function joinRoom(roomId: string, playerName: string): { room: Room; playerId: string } | null {
-  const room = rooms.get(roomId.toUpperCase());
+  const room = rooms.get(roomId);
   if (!room || room.players.length >= 2) {
     return null;
   }

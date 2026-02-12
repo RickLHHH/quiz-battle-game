@@ -5,11 +5,9 @@ import { useGameStore } from '../stores/gameStore';
 
 // 自动检测 Socket 地址
 const getSocketUrl = () => {
-  // 如果有环境变量，优先使用
   if (import.meta.env.VITE_SOCKET_URL) {
     return import.meta.env.VITE_SOCKET_URL;
   }
-  // 否则使用当前域名
   return window.location.origin;
 };
 
@@ -18,6 +16,11 @@ const SOCKET_URL = getSocketUrl();
 export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
   const store = useGameStore();
+  // 使用 ref 存储最新的 room 状态
+  const roomRef = useRef<Room | null>(null);
+  
+  // 同步 roomRef 与 store.room
+  roomRef.current = store.room;
 
   useEffect(() => {
     const socket = io(SOCKET_URL, {
@@ -48,24 +51,31 @@ export function useSocket() {
 
     // 房间事件
     socket.on('room:joined', ({ room, playerId }: { room: Room; playerId: string }) => {
+      console.log('Joined room:', room.id, 'Player ID:', playerId);
       store.setRoom(room);
       store.setPlayerId(playerId);
       store.setStatus('lobby');
     });
 
     socket.on('room:playerJoined', ({ player }: { player: Player }) => {
-      const currentRoom = store.room;
+      console.log('Player joined:', player.name);
+      const currentRoom = roomRef.current;
       if (currentRoom) {
-        const newRoom: Room = {
-          ...currentRoom,
-          players: [...currentRoom.players, player],
-        };
-        store.setRoom(newRoom);
+        // 检查玩家是否已经在房间中（避免重复添加）
+        const exists = currentRoom.players.some(p => p.id === player.id);
+        if (!exists) {
+          const newRoom: Room = {
+            ...currentRoom,
+            players: [...currentRoom.players, player],
+          };
+          store.setRoom(newRoom);
+        }
       }
     });
 
     socket.on('room:playerLeft', ({ playerId }: { playerId: string }) => {
-      const currentRoom = store.room;
+      console.log('Player left:', playerId);
+      const currentRoom = roomRef.current;
       if (currentRoom) {
         const newRoom: Room = {
           ...currentRoom,
@@ -76,7 +86,8 @@ export function useSocket() {
     });
 
     socket.on('room:playerReady', ({ playerId, categories }: { playerId: string; categories: string[] }) => {
-      const currentRoom = store.room;
+      console.log('Player ready:', playerId, categories);
+      const currentRoom = roomRef.current;
       if (currentRoom) {
         const newRoom: Room = {
           ...currentRoom,
@@ -121,12 +132,10 @@ export function useSocket() {
     socket.on('answer:result', ({ correct, scores, correctAnswer, isSecondChance }: { correct: boolean; scores: any[]; correctAnswer: number; isSecondChance?: boolean }) => {
       store.setAnswerResult({ correct, scores, correctAnswer, isSecondChance });
       
-      // 更新分数
       scores.forEach(({ playerId, score }: { playerId: string; score: number }) => {
         store.updatePlayerScore(playerId, score);
       });
       
-      // 如果是第二轮机会，重置抢答赢家以允许对手答题
       if (isSecondChance) {
         store.setBuzzerWinner(null);
       }
@@ -147,6 +156,7 @@ export function useSocket() {
     });
 
     socket.on('error', ({ message }: { message: string }) => {
+      console.error('Socket error:', message);
       store.setConnectionError(message);
     });
 

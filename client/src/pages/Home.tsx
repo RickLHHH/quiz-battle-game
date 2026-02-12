@@ -109,12 +109,17 @@ export function Home({ onCreateRoom, onJoinRoom }: HomeProps) {
 
           {mode === 'join' && (
             <div>
-              <label className="block text-sm text-white/60 mb-2">房间号</label>
+              <label className="block text-sm text-white/60 mb-2">房间号（6位数字）</label>
               <input
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={roomId}
-                onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-                placeholder="输入6位房间号"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setRoomId(value);
+                }}
+                placeholder="例如: 123456"
                 maxLength={6}
                 className="input-field text-center text-lg tracking-widest"
               />

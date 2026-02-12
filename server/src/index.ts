@@ -67,8 +67,10 @@ io.on('connection', (socket) => {
 
   // 加入房间
   socket.on('room:join', ({ roomId, playerName }: { roomId: string; playerName: string }) => {
+    console.log(`Join request: roomId=${roomId}, playerName=${playerName}`);
     const result = joinRoom(roomId, playerName);
     if (!result) {
+      console.log(`Join failed: room ${roomId} not found or full`);
       socket.emit('error', { message: '房间不存在或已满' });
       return;
     }
@@ -77,11 +79,16 @@ io.on('connection', (socket) => {
     playerSockets.set(playerId, socket.id);
     socket.join(room.id);
 
+    // 先通知加入者
     socket.emit('room:joined', { room, playerId });
+    console.log(`${playerName} (${playerId}) joined room ${room.id}`);
     
-    // 通知房间内的其他玩家
-    socket.to(room.id).emit('room:playerJoined', { player: room.players[1] });
-    console.log(`${playerName} joined room: ${room.id}`);
+    // 再通知房间内的其他玩家（房主）
+    const newPlayer = room.players.find(p => p.id === playerId);
+    if (newPlayer) {
+      socket.to(room.id).emit('room:playerJoined', { player: newPlayer });
+      console.log(`Notified room ${room.id} about new player: ${newPlayer.name}`);
+    }
   });
 
   // 玩家准备
