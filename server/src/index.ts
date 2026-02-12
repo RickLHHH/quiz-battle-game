@@ -9,8 +9,8 @@ import {
   createRoom,
   joinRoom,
   leaveRoom,
-  playerReady,
   getRoomByPlayerId,
+  getRoom,
   getNextQuestion,
   handleBuzzer,
   nextRound,
@@ -274,9 +274,13 @@ function proceedToNextRound(room: Room) {
 
 // 开始游戏
 async function startGame(roomId: string) {
-  const room = getRoomByPlayerId(roomId);
-  if (!room) return;
+  const room = getRoom(roomId);
+  if (!room) {
+    console.error(`startGame failed: room ${roomId} not found`);
+    return;
+  }
 
+  console.log(`Starting game in room ${roomId}`);
   io.to(roomId).emit('game:started', { room });
   
   // 延迟后开始第一轮
@@ -285,8 +289,11 @@ async function startGame(roomId: string) {
 
 // 开始一轮
 async function startRound(roomId: string) {
-  const room = getRoomByPlayerId(roomId);
-  if (!room) return;
+  const room = getRoom(roomId);
+  if (!room) {
+    console.error(`startRound failed: room ${roomId} not found`);
+    return;
+  }
 
   const question = getNextQuestion(roomId);
   if (!question) {
