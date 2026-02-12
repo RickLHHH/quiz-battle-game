@@ -27,6 +27,19 @@ const io = new Server(httpServer, {
   },
 });
 
+// 根路径 - 显示服务器状态
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'running', 
+    service: 'Quiz Battle Game Server',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      websocket: '/socket.io/'
+    }
+  });
+});
+
 // 健康检查端点
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
