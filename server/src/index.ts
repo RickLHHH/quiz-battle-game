@@ -11,6 +11,7 @@ import {
   leaveRoom,
   getRoomByPlayerId,
   getRoom,
+  initGame,
   getNextQuestion,
   handleBuzzer,
   nextRound,
@@ -274,9 +275,16 @@ function proceedToNextRound(room: Room) {
 
 // 开始游戏
 async function startGame(roomId: string) {
+  // 首先初始化游戏状态（生成题目等）
+  const initialized = initGame(roomId);
+  if (!initialized) {
+    console.error(`startGame failed: could not initialize room ${roomId}`);
+    return;
+  }
+  
   const room = getRoom(roomId);
   if (!room) {
-    console.error(`startGame failed: room ${roomId} not found`);
+    console.error(`startGame failed: room ${roomId} not found after init`);
     return;
   }
 

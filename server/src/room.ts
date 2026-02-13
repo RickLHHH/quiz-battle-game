@@ -110,18 +110,22 @@ export function playerReady(playerId: string, selectedCategories: string[]): boo
   player.selectedCategories = selectedCategories;
   player.isReady = true;
 
-  // 如果两个玩家都准备了，开始游戏
+  // 如果两个玩家都准备了，初始化游戏状态
+  // 注意：真正的游戏开始由 index.ts 中的 startGame 控制
   if (room.players.length === 2 && room.players.every(p => p.isReady)) {
-    startGame(roomId);
+    console.log(`Both players ready in room ${roomId}, waiting for game start...`);
   }
 
   return true;
 }
 
-// 开始游戏
-function startGame(roomId: string): void {
+// 开始游戏 - 初始化游戏状态
+export function initGame(roomId: string): boolean {
   const room = rooms.get(roomId);
-  if (!room) return;
+  if (!room) {
+    console.error(`initGame failed: room ${roomId} not found`);
+    return false;
+  }
 
   // 合并双方选择的类别
   const categoryPool = new Set<string>();
@@ -138,6 +142,13 @@ function startGame(roomId: string): void {
   room.questions = getRandomQuestions(room.categoryPool, room.totalRounds);
   room.status = 'playing';
   room.currentRound = 1;
+  
+  console.log(`Game initialized in room ${roomId}:`);
+  console.log(`  - Categories: ${room.categoryPool.join(', ')}`);
+  console.log(`  - Questions: ${room.questions.length}`);
+  console.log(`  - Players: ${room.players.map(p => p.name).join(', ')}`);
+  
+  return true;
 }
 
 // 获取房间
